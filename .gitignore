@@ -1,0 +1,7 @@
+# Generated
+.azle
+.dfx
+.turbo
+
+# Node
+node_modules

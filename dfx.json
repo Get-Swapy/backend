@@ -1,0 +1,13 @@
+{
+  "canisters": {
+    "rest-api": {
+      "type": "azle",
+      "main": "canisters/rest-api/src/main.ts",
+      "custom": {
+        "experimental": true,
+        "candid_gen": "http",
+        "esm_externals": ["@nestjs/microservices", "@nestjs/websockets"]
+      }
+    }
+  }
+}
