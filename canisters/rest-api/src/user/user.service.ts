@@ -7,13 +7,11 @@ import { User } from './entities/user.entity';
 const users = StableBTreeMap<text, User>(0);
 
 type CreateUserData = {
-  platform: 'telegram' | 'whatsapp';
   externalId: string;
 };
 
 type CreateUserResult = {
   id: string;
-  platform: 'telegram' | 'whatsapp';
   externalId: string;
 };
 
@@ -34,7 +32,6 @@ export class UserService {
 
     const newUser = {
       id: userId,
-      platform: data.platform,
       externalId: data.externalId,
     };
 
