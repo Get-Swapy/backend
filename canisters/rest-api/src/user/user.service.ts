@@ -8,13 +8,13 @@ const users = StableBTreeMap<text, User>(0);
 
 type CreateUserData = {
   platform: 'telegram' | 'whatsapp';
-  externalId: text;
+  externalId: string;
 };
 
 type CreateUserResult = {
   id: string;
   platform: 'telegram' | 'whatsapp';
-  externalId: text;
+  externalId: string;
 };
 
 @Injectable()
