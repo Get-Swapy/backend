@@ -1,4 +1,6 @@
 {
+  "version": 1,
+  "dfx": "0.25.0",
   "canisters": {
     "rest-api": {
       "type": "azle",
