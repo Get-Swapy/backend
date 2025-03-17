@@ -1,0 +1,3 @@
+{
+  "extends": "./canisters/rest-api/tsconfig.json"
+}

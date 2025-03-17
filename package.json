@@ -1,0 +1,36 @@
+{
+  "name": "swapy-backend",
+  "version": "0.1.0",
+  "description": "Finance Assistant for Seamless Transactions",
+  "author": "Bundly",
+  "license": "MIT",
+  "engines": {
+    "node": "^22.14.0",
+    "npm": "^10.9.2"
+  },
+  "packageManager": "^npm@10.9.2",
+  "keywords": [
+    "azle",
+    "dapp",
+    "descentralize application",
+    "express",
+    "icp",
+    "internet computer",
+    "internet computer protocol",
+    "rest api",
+    "typescript",
+    "nestjs",
+    "blockchain",
+    "web3"
+  ],
+  "workspaces": [
+    "canisters/rest-api"
+  ],
+  "scripts": {
+    "preclean": "dfx stop && turbo run clean",
+    "clean": "rm -rf .azle && rm -rf .dfx && rm -rf .mops && rm -rf node_modules && rm -rf .turbo"
+  },
+  "devDependencies": {
+    "turbo": "^2.4.2"
+  }
+}
