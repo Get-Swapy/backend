@@ -6,6 +6,8 @@
     "module": "ES2022",
     "moduleResolution": "bundler",
     "allowJs": true,
-    "noEmit": true
+    "noEmit": true,
+    "baseUrl": "./",
+    "paths": {}
   }
 }

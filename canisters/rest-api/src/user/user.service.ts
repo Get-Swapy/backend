@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { StableBTreeMap, text } from 'azle/experimental';
+import { StableBTreeMap } from 'azle';
+import { text } from 'azle/experimental';
 import { v4 as uuidv4 } from 'uuid';
 
 import { User } from './entities/user.entity';
 
-const users = StableBTreeMap<text, User>(0);
+const users = new StableBTreeMap<text, User>(0);
 
 type CreateUserData = {
   externalId: string;

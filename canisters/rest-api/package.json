@@ -12,6 +12,7 @@
     "azle": "0.30.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "ethers": "^6.13.5",
     "joi": "^17.13.3",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
@@ -49,7 +50,7 @@
       "json",
       "ts"
     ],
-    "rootDir": "src",
+    "rootDir": ".",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
@@ -57,7 +58,12 @@
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "coverageDirectory": "./coverage",
+    "testEnvironment": "node",
+    "roots": [
+      "<rootDir>/src/",
+      "<rootDir>/libs/"
+    ],
+    "moduleNameMapper": {}
   }
 }
