@@ -3,7 +3,7 @@ import { canisterSelf } from 'azle';
 import { Account } from 'azle/canisters/icrc_1/idl';
 
 import { ICP } from './tokens/icp';
-import { USDC } from './tokens/usdc';
+import { USDC_ARBITRUM } from './tokens/usdc_arbitrum';
 
 @Injectable()
 export class WalletService {
@@ -51,9 +51,9 @@ export class WalletService {
       {
         token: 'USDC',
         network: 'Arbitrum One',
-        balance: Number(await USDC.balance(account)),
-        decimals: await USDC.decimals(),
-        address: await USDC.address(account),
+        balance: Number(await USDC_ARBITRUM.balance(account)),
+        decimals: await USDC_ARBITRUM.decimals(),
+        address: await USDC_ARBITRUM.address(account),
       },
     ];
 
