@@ -27,8 +27,6 @@ export class WalletService {
     // Copy the encoded string bytes into the padded array
     paddedArray.set(initialArray.slice(0, 32));
 
-    console.log(paddedArray);
-
     return paddedArray;
   }
 
@@ -46,15 +44,16 @@ export class WalletService {
       {
         token: 'ICP',
         network: 'Internet Computer',
-        balance: Number(await ICP.icrc1_balance_of(account)),
-        decimals: await ICP.icrc1_decimals(),
+        balance: Number(await ICP.balance(account)),
+        decimals: await ICP.decimals(),
+        // address: await ICP.address(account),
       },
       {
         token: 'USDC',
-        network: 'USDC Local',
-        balance: Number(await USDC.balance_of(account)),
+        network: 'Arbitrum One',
+        balance: Number(await USDC.balance(account)),
         decimals: await USDC.decimals(),
-        address: await USDC.get_deposit_address(account),
+        address: await USDC.address(account),
       },
     ];
 

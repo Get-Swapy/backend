@@ -8,10 +8,10 @@ export const ERC20 = (address: string, service: RpcServices) => {
   const evmRpc = new EvmRpcService(service);
 
   return {
-    async get_deposit_address(account: Account): Promise<string> {
+    async address(account: Account): Promise<string> {
       return evmRpc.accountToAddress(account);
     },
-    async balance_of(account: Account): Promise<bigint> {
+    async balance(account: Account): Promise<bigint> {
       const functionSignature = 'balanceOf(address)';
       const selector = keccak256(toUtf8Bytes(functionSignature)).slice(0, 10);
       const abiCoder = new AbiCoder();
