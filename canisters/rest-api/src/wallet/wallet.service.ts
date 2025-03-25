@@ -3,7 +3,7 @@ import { canisterSelf } from 'azle';
 import { Account } from 'azle/canisters/icrc_1/idl';
 
 import { ICP } from './tokens/icp';
-import { LUSDC } from './tokens/usdc-local';
+import { USDC } from './tokens/usdc';
 
 @Injectable()
 export class WalletService {
@@ -50,11 +50,11 @@ export class WalletService {
         decimals: await ICP.icrc1_decimals(),
       },
       {
-        token: 'LUSDC',
+        token: 'USDC',
         network: 'USDC Local',
-        balance: Number(await LUSDC.balance_of(account)),
-        decimals: await LUSDC.decimals(),
-        address: await LUSDC.get_deposit_address(account),
+        balance: Number(await USDC.balance_of(account)),
+        decimals: await USDC.decimals(),
+        address: await USDC.get_deposit_address(account),
       },
     ];
 
