@@ -2,16 +2,7 @@ import { IDL, call } from 'azle';
 import { Account } from 'azle/canisters/icrc_1/idl';
 
 export const ICRC = (canisterId: string) => ({
-  async icrc1_decimals(): Promise<number> {
-    const decimals = await call<[], number>(canisterId, 'icrc1_decimals', {
-      paramIdlTypes: [],
-      returnIdlType: IDL.Nat8,
-      args: [],
-    });
-
-    return decimals;
-  },
-  async icrc1_balance_of(account: Account): Promise<bigint> {
+  async balance(account: Account): Promise<bigint> {
     const balance = await call<[Account], bigint>(
       canisterId,
       'icrc1_balance_of',
@@ -23,5 +14,14 @@ export const ICRC = (canisterId: string) => ({
     );
 
     return balance;
+  },
+  async decimals(): Promise<number> {
+    const decimals = await call<[], number>(canisterId, 'icrc1_decimals', {
+      paramIdlTypes: [],
+      returnIdlType: IDL.Nat8,
+      args: [],
+    });
+
+    return decimals;
   },
 });

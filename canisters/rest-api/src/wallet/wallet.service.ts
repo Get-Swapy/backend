@@ -3,39 +3,17 @@ import { canisterSelf } from 'azle';
 import { Account } from 'azle/canisters/icrc_1/idl';
 
 import { ICP } from './tokens/icp';
-import { LUSDC } from './tokens/usdc-local';
+import { USDC_ARBITRUM } from './tokens/usdc_arbitrum';
+import { uuidToUint8Array } from './wallet.helpers';
 
 @Injectable()
 export class WalletService {
   constructor() {}
 
-  private stringToUint8Array(str: string): Uint8Array {
-    // Clean UUID by removing hyphens
-    const cleanStr = str.replace(/-/g, '');
-
-    const encoder = new TextEncoder();
-    const initialArray = encoder.encode(cleanStr);
-
-    // Ensure the input string is not longer than 32 bytes
-    if (initialArray.length > 32) {
-      throw new Error('Input string is too long - must be 32 bytes or less');
-    }
-
-    // Create a zero-filled array of exactly 32 bytes
-    const paddedArray = new Uint8Array(32).fill(0);
-
-    // Copy the encoded string bytes into the padded array
-    paddedArray.set(initialArray.slice(0, 32));
-
-    console.log(paddedArray);
-
-    return paddedArray;
-  }
-
   private getAccount(userId: string): Account {
     return {
       owner: canisterSelf(),
-      subaccount: [this.stringToUint8Array(userId)],
+      subaccount: [uuidToUint8Array(userId)],
     };
   }
 
@@ -46,15 +24,16 @@ export class WalletService {
       {
         token: 'ICP',
         network: 'Internet Computer',
-        balance: Number(await ICP.icrc1_balance_of(account)),
-        decimals: await ICP.icrc1_decimals(),
+        balance: Number(await ICP.balance(account)),
+        decimals: await ICP.decimals(),
+        // address: await ICP.address(account),
       },
       {
-        token: 'LUSDC',
-        network: 'USDC Local',
-        balance: Number(await LUSDC.balance_of(account)),
-        decimals: await LUSDC.decimals(),
-        address: await LUSDC.get_deposit_address(account),
+        token: 'USDC',
+        network: 'Arbitrum One',
+        balance: Number(await USDC_ARBITRUM.balance(account)),
+        decimals: await USDC_ARBITRUM.decimals(),
+        address: await USDC_ARBITRUM.address(account),
       },
     ];
 

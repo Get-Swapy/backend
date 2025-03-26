@@ -1,3 +1,6 @@
-import { ICRC } from '../token-stadards/icrc';
+import { ICRC } from '../token-standards/icrc';
 
-export const ICP = ICRC('ryjl3-tyaaa-aaaaa-aaaba-cai');
+// TODO: Get from env
+const CANISTER_ID = 'ryjl3-tyaaa-aaaaa-aaaba-cai';
+
+export const ICP = ICRC(CANISTER_ID);
