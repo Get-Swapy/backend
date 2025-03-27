@@ -116,8 +116,10 @@ export class EvmRpcService {
     const feeHistory = await this.getFeeHistory();
     const baseFeePerGas = feeHistory.baseFeePerGas[0];
     const maxFeePerGas = baseFeePerGas * 2n + maxPriorityFeePerGas;
-    const gasLimit = getUint(50000);
-    const nonce = await this.getTransactionCount(payload.to);
+    const gasLimit = getUint(100000);
+    const nonce = await this.getTransactionCount(
+      await this.accountToAddress(account),
+    );
 
     const transaction: SignRequest = {
       to: payload.to,
@@ -157,9 +159,26 @@ export class EvmRpcService {
       return result.Consistent.Ok.Ok;
     }
 
-    // TODO: Improve error handling
+    // Mejorar el manejo de errores
+    if (
+      'Consistent' in result &&
+      'Ok' in result.Consistent &&
+      'Err' in result.Consistent.Ok
+    ) {
+      throw new Error(
+        `Transaction error: ${JSON.stringify(result.Consistent.Ok.Err)}`,
+      );
+    } else if ('Consistent' in result && 'Err' in result.Consistent) {
+      throw new Error(`RPC error: ${JSON.stringify(result.Consistent.Err)}`);
+    } else if ('Inconsistent' in result) {
+      throw new Error(
+        `Inconsistent result: ${JSON.stringify(result.Inconsistent)}`,
+      );
+    }
 
-    throw new Error('Error sending transaction');
+    throw new Error(
+      `Error sending transaction: Unexpected response format: ${JSON.stringify(result)}`,
+    );
   }
 
   private getChainId(): bigint {

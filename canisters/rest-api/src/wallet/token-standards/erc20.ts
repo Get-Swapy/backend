@@ -71,6 +71,7 @@ export const ERC20 = (
       const result = await evmRpc.sendTransaction(payload, from);
 
       // TODO: validate if result[0] has a value
+      // TODO: validate if transaction was successful
       return {
         transactionId: result[0],
         explorerUrl: `${explorerUrl}/tx/${result[0]}`,
