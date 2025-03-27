@@ -21,7 +21,7 @@ import {
   ecdsaPublicKey,
   signWithEcdsa,
 } from 'azle/experimental';
-import { Transaction, ethers } from 'ethers';
+import { Transaction, ethers, getUint } from 'ethers';
 
 export type CallPayload = {
   to: string;
@@ -116,7 +116,7 @@ export class EvmRpcService {
     const feeHistory = await this.getFeeHistory();
     const baseFeePerGas = feeHistory.baseFeePerGas[0];
     const maxFeePerGas = baseFeePerGas * 2n + maxPriorityFeePerGas;
-    const gasLimit = 21_000n;
+    const gasLimit = getUint(50000);
     const nonce = await this.getTransactionCount(payload.to);
 
     const transaction: SignRequest = {
@@ -396,7 +396,7 @@ export class EvmRpcService {
     const evmAddress = ethers.computeAddress(ethers.hexlify(pubkey));
 
     const { r, s, v } = calculateRsvForTEcdsa(
-      1337,
+      Number(transaction.chainId),
       evmAddress,
       unsignedSerializedTxHash,
       signedSerializedTxHash,
