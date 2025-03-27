@@ -4,16 +4,17 @@ import { ERC20 } from '../token-standards/erc20';
 // import { parseServices } from '../wallet.helpers';
 
 // TODO: Get from env
-const USDC_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
+const USDC_ARBITRUM_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
 // const USDC_SERVICES: RpcServices = {
 //   ArbitrumOne: [[{ Alchemy: null }]],
 // };
+const USDC_ARBITRUM_EXPLORER_URL = 'https://arbiscan.io';
 
 // const USDC_SERVICES: RpcServices = parseServices(
 //   '{"Custom":{"chainId":31337,"services":[{"url":"http://localhost:8546","headers":[]}]}}',
 // );
 
-const USDC_SERVICES: RpcServices = {
+const USDC_ARBITRUM_SERVICES: RpcServices = {
   Custom: {
     chainId: 31337n,
     services: [
@@ -25,4 +26,8 @@ const USDC_SERVICES: RpcServices = {
   },
 };
 
-export const USDC_ARBITRUM = ERC20(USDC_ADDRESS, USDC_SERVICES);
+export const USDC_ARBITRUM = ERC20(
+  USDC_ARBITRUM_ADDRESS,
+  USDC_ARBITRUM_SERVICES,
+  USDC_ARBITRUM_EXPLORER_URL,
+);

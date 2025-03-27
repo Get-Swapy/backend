@@ -148,9 +148,16 @@ export class EvmRpcService {
       },
     );
 
-    if ('Consistent' in result && 'Ok' in result.Consistent) {
-      return result.Consistent.Ok;
+    // Check for successful response and extract the transaction hash
+    if (
+      'Consistent' in result &&
+      'Ok' in result.Consistent &&
+      'Ok' in result.Consistent.Ok
+    ) {
+      return result.Consistent.Ok.Ok;
     }
+
+    // TODO: Improve error handling
 
     throw new Error('Error sending transaction');
   }

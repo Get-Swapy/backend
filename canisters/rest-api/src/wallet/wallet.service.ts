@@ -18,6 +18,7 @@ export class WalletService {
   }
 
   public async getBalances(userId: string) {
+    // TODO: Validate if user exists
     const account = this.getAccount(userId);
 
     const balances = [
@@ -38,5 +39,26 @@ export class WalletService {
     ];
 
     return balances;
+  }
+
+  public transferToUser(data: {
+    from: string;
+    to: string;
+    token: string;
+    amount: number;
+  }) {
+    // TODO: validate if user exists
+    const { from, to, token, amount } = data;
+    const fromAccount = this.getAccount(from);
+    const toAccount = this.getAccount(to);
+
+    switch (token) {
+      case 'ICP':
+        return ICP.transfer(fromAccount, toAccount, amount);
+      case 'USDC_ARBITRUM':
+        return USDC_ARBITRUM.transfer(fromAccount, toAccount, amount);
+      default:
+        throw new Error('Token not supported');
+    }
   }
 }

@@ -1,15 +1,37 @@
 import { RpcServices } from 'azle/canisters/evm_rpc/idl';
 import { Account } from 'azle/canisters/icrc_1/idl';
-import { AbiCoder, keccak256, toUtf8Bytes } from 'ethers';
+import { AbiCoder, getUint, keccak256, toUtf8Bytes } from 'ethers';
 
-import { CallPayload, EvmRpcService } from '../../evm-rpc/evm-rpc.service';
+import {
+  CallPayload,
+  EvmRpcService,
+  TransactionPayload,
+} from '../../evm-rpc/evm-rpc.service';
 
-export const ERC20 = (address: string, service: RpcServices) => {
+export const ERC20 = (
+  contractAddress: string,
+  service: RpcServices,
+  explorerUrl: string,
+) => {
   const evmRpc = new EvmRpcService(service);
 
   return {
     async address(account: Account): Promise<string> {
       return evmRpc.accountToAddress(account);
+    },
+    async decimals(): Promise<number> {
+      const functionSignature = 'decimals()';
+      const selector = keccak256(toUtf8Bytes(functionSignature)).slice(0, 10);
+
+      const payload: CallPayload = {
+        to: contractAddress,
+        input: selector,
+      };
+
+      const result = await evmRpc.call(payload);
+      const decimals = Number(BigInt(result));
+
+      return decimals;
     },
     async balance(account: Account): Promise<bigint> {
       const functionSignature = 'balanceOf(address)';
@@ -20,7 +42,7 @@ export const ERC20 = (address: string, service: RpcServices) => {
       const input = selector + args.slice(2);
 
       const payload: CallPayload = {
-        to: address,
+        to: contractAddress,
         input,
       };
 
@@ -29,20 +51,30 @@ export const ERC20 = (address: string, service: RpcServices) => {
 
       return balance;
     },
-
-    async decimals(): Promise<number> {
-      const functionSignature = 'decimals()';
+    async transfer(from: Account, to: Account, amount: number) {
+      const functionSignature = 'transfer(address,uint256)';
       const selector = keccak256(toUtf8Bytes(functionSignature)).slice(0, 10);
+      const abiCoder = new AbiCoder();
+      const toAddress = await this.address(to);
+      const args = abiCoder.encode(
+        ['address', 'uint256'],
+        [toAddress, getUint(amount)],
+      );
+      const data = selector + args.slice(2);
 
-      const payload: CallPayload = {
-        to: address,
-        input: selector,
+      const payload: TransactionPayload = {
+        to: contractAddress,
+        data,
+        value: getUint(0),
       };
 
-      const result = await evmRpc.call(payload);
-      const decimals = Number(BigInt(result));
+      const result = await evmRpc.sendTransaction(payload, from);
 
-      return decimals;
+      // TODO: validate if result[0] has a value
+      return {
+        transactionId: result[0],
+        explorerUrl: `${explorerUrl}/tx/${result[0]}`,
+      };
     },
   };
 };
