@@ -2,15 +2,25 @@ import { Injectable } from '@nestjs/common';
 import { canisterSelf } from 'azle';
 import { Account } from 'azle/canisters/icrc_1/idl';
 
-import { ICP } from './tokens/icp';
-import { USDC_ARBITRUM } from './tokens/usdc_arbitrum';
+import { TokenService } from './token.service';
+import {
+  RecipientNotFoundError,
+  SenderNotFoundError,
+  UnsupportedTokenError,
+} from './wallet.errors';
 import { uuidToUint8Array } from './wallet.helpers';
+import { UserNotFoundError } from '../user/user.errors';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class WalletService {
-  constructor() {}
+  constructor(
+    private readonly tokenService: TokenService,
+    private readonly userService: UserService,
+  ) {}
 
   private getAccount(userId: string): Account {
+    console.log(uuidToUint8Array(userId));
     return {
       owner: canisterSelf(),
       subaccount: [uuidToUint8Array(userId)],
@@ -18,25 +28,31 @@ export class WalletService {
   }
 
   public async getBalances(userId: string) {
-    // TODO: Validate if user exists
-    const account = this.getAccount(userId);
+    // Validate if user exists
+    const user = this.userService.getById(userId);
+    if (!user) {
+      throw new UserNotFoundError(userId);
+    }
 
-    const balances = [
-      {
-        token: 'ICP',
-        network: 'Internet Computer',
-        balance: Number(await ICP.balance(account)),
-        decimals: await ICP.decimals(),
-        // address: await ICP.address(account),
-      },
-      {
-        token: 'USDC',
-        network: 'Arbitrum One',
-        balance: Number(await USDC_ARBITRUM.balance(account)),
-        decimals: await USDC_ARBITRUM.decimals(),
-        address: await USDC_ARBITRUM.address(account),
-      },
-    ];
+    const account = this.getAccount(userId);
+    const tokens = this.tokenService.getAllTokens();
+
+    const balances = await Promise.all(
+      tokens.map(async (tokenInfo) => {
+        const balance = await tokenInfo.instance.balance(account);
+        const decimals = await tokenInfo.instance.decimals();
+
+        const balanceInfo: any = {
+          token: tokenInfo.symbol,
+          network: tokenInfo.network,
+          balance: Number(balance),
+          decimals: decimals,
+          address: await tokenInfo.instance.address(account),
+        };
+
+        return balanceInfo;
+      }),
+    );
 
     return balances;
   }
@@ -47,18 +63,33 @@ export class WalletService {
     token: string;
     amount: number;
   }) {
-    // TODO: validate if user exists
+    // Validate if users exist
     const { from, to, token, amount } = data;
+
+    const fromUser = this.userService.getById(from);
+    if (!fromUser) {
+      throw new SenderNotFoundError(from);
+    }
+
+    const toUser = this.userService.getById(to);
+    if (!toUser) {
+      throw new RecipientNotFoundError(to);
+    }
+
+    // Validar que el token es soportado
+    if (!this.tokenService.isTokenSupported(token)) {
+      throw new UnsupportedTokenError(token);
+    }
+
     const fromAccount = this.getAccount(from);
     const toAccount = this.getAccount(to);
 
-    switch (token) {
-      case 'ICP':
-        return ICP.transfer(fromAccount, toAccount, amount);
-      case 'USDC_ARBITRUM':
-        return USDC_ARBITRUM.transfer(fromAccount, toAccount, amount);
-      default:
-        throw new Error('Token not supported');
-    }
+    // Usar el servicio de tokens para realizar la transferencia
+    return this.tokenService.transferToken(
+      token,
+      fromAccount,
+      toAccount,
+      amount,
+    );
   }
 }

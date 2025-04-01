@@ -6,6 +6,9 @@ import {
 } from 'azle/canisters/icrc_1/idl';
 
 export const ICRC = (canisterId: string, explorerUrl: string) => ({
+  async address(account: Account): Promise<string> {
+    return '';
+  },
   async decimals(): Promise<number> {
     const decimals = await call<[], number>(canisterId, 'icrc1_decimals', {
       paramIdlTypes: [],

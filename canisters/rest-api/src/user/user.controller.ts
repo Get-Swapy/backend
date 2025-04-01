@@ -30,20 +30,30 @@ export class UserController {
 
   // TODO: This should be a GET request
   @Post('/:userId/wallet/balances')
-  public getBalance(@Param('userId') userId: string) {
-    return this.wallet.getBalances(userId);
+  public async getBalance(@Param('userId') userId: string) {
+    try {
+      return await this.wallet.getBalances(userId);
+    } catch (error) {
+      // The exception filter will handle the error
+      throw error;
+    }
   }
 
   @Post('/:userId/wallet/transfer')
-  public transferToUser(
+  public async transferToUser(
     @Param('userId') userId: string,
     @Body() data: TransferToUserDto,
   ) {
-    return this.wallet.transferToUser({
-      from: userId,
-      to: data.userId,
-      token: data.token,
-      amount: data.amount,
-    });
+    try {
+      return await this.wallet.transferToUser({
+        from: userId,
+        to: data.userId,
+        token: data.token,
+        amount: data.amount,
+      });
+    } catch (error) {
+      // The exception filter will handle the error
+      throw error;
+    }
   }
 }

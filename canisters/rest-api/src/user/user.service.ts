@@ -4,6 +4,7 @@ import { text } from 'azle/experimental';
 import { v4 as uuidv4 } from 'uuid';
 
 import { User } from './entities/user.entity';
+import { UserNotFoundError } from './user.errors';
 
 const users = new StableBTreeMap<text, User>(0);
 
@@ -48,6 +49,10 @@ export class UserService {
   public getById(userId: string): User {
     const maybeUser = users.get(userId);
 
+    if (!maybeUser) {
+      throw new UserNotFoundError(userId);
+    }
+
     return maybeUser;
   }
 
@@ -55,6 +60,10 @@ export class UserService {
     const maybeUser = users
       .values()
       .find((user) => user.externalId === externalId);
+
+    if (!maybeUser) {
+      throw new UserNotFoundError(`with external ID ${externalId}`);
+    }
 
     return maybeUser;
   }
