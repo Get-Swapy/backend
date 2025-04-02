@@ -1,0 +1,74 @@
+# Generated files and directories
+.azle/
+.dfx/
+.turbo/
+node_modules/
+dist/
+build/
+coverage/
+
+# Environment and secrets
+.env
+.env.local
+.env.*
+*.pem
+*.key
+*.cert
+
+# IDE and editor files
+# .vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs and databases
+*.log
+*.sqlite
+*.db
+
+# Cache directories
+.cache/
+.npm/
+.yarn/
+
+# Test coverage and reports
+coverage/
+.nyc_output/
+junit.xml
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Large binary files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+*.iso
+*.dmg
+*.img
+
+# Dependencies
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build artifacts
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Documentation
+docs/_build/
+site/
+
+# Local development
+.local/
+*.local 

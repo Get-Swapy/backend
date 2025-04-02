@@ -1,0 +1,66 @@
+---
+description: Ensures that all code, comments, documentation, and related content are written in English for consistency and maintainability in the current project.
+globs: ["**/*"]
+alwaysApply: true
+---
+**Description:**  
+This rule ensures that all code-related content is written in English to maintain consistency, improve maintainability, and follow international coding standards within the context of this project.
+
+**Scope:**  
+- Code comments and documentation
+- Variable names and identifiers
+- Function and method names
+- Class and interface names
+- File and directory names
+- Error messages and logging
+- API endpoint descriptions
+- Configuration keys and values
+- Test descriptions and assertions
+- Git commit messages
+- README and documentation files
+
+**Guidelines:**
+1. Use clear, descriptive English terms.
+2. Follow standard English grammar and punctuation.
+3. Use common technical terminology.
+4. Avoid abbreviations unless they are widely accepted.
+5. Keep names and descriptions concise but meaningful.
+6. Use consistent terminology throughout the codebase.
+
+**Examples:**
+✅ Good:
+```typescript
+// Calculate user's total balance
+const userBalance = calculateTotalBalance(userId);
+
+// Handle payment processing error
+function handlePaymentError(error: PaymentError) {
+  // Log error details
+  console.error('Payment processing failed:', error.message);
+}
+```
+
+❌ Bad:
+```typescript
+// Calcular balance total del usuario
+const balanceUsuario = calcularBalanceTotal(idUsuario);
+
+// Manejar error de procesamiento de pago
+function manejarErrorPago(error: ErrorPago) {
+  // Registrar detalles del error
+  console.error('Error en procesamiento de pago:', error.mensaje);
+}
+
+```
+
+**Exceptions:**
+- Domain-specific terms that are commonly used in their original language.
+- External API endpoints or services that require specific language.
+- Configuration values that must match external systems.
+- Test data that requires non-English content for testing purposes.
+
+**Enforcement:**
+- Code reviews should verify language compliance.
+- Automated linting tools should flag non-English content.
+- Documentation should be reviewed for language consistency.
+- Error messages should be standardized in English.
