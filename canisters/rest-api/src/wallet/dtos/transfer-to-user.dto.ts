@@ -2,7 +2,10 @@ import { IsEnum, IsNumber, IsString } from 'class-validator';
 
 export class TransferToUserDto {
   @IsString()
-  userId: string;
+  from: string;
+
+  @IsString()
+  to: string;
 
   @IsNumber()
   amount: number;

@@ -1,9 +1,7 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 
-import { WalletService } from 'src/wallet/wallet.service';
-
+import { WalletService } from '../wallet/wallet.service';
 import { CreateUserDto } from './dtos/create-user.dto';
-import { TransferToUserDto } from './dtos/transfer-to-user.dto';
 import { UserService } from './user.service';
 
 @Controller('/users')
@@ -33,24 +31,6 @@ export class UserController {
   public async getBalance(@Param('userId') userId: string) {
     try {
       return await this.wallet.getBalances(userId);
-    } catch (error) {
-      // The exception filter will handle the error
-      throw error;
-    }
-  }
-
-  @Post('/:userId/wallet/transfer')
-  public async transferToUser(
-    @Param('userId') userId: string,
-    @Body() data: TransferToUserDto,
-  ) {
-    try {
-      return await this.wallet.transferToUser({
-        from: userId,
-        to: data.userId,
-        token: data.token,
-        amount: data.amount,
-      });
     } catch (error) {
       // The exception filter will handle the error
       throw error;

@@ -1,16 +1,28 @@
-import { Controller, Get, NotFoundException, Param } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+} from '@nestjs/common';
 
+import { TransferToUserDto } from './dtos/transfer-to-user.dto';
 import { TokenService } from './token.service';
+import { WalletService } from './wallet.service';
 
-@Controller('wallet')
+@Controller('/wallet')
 export class WalletController {
-  constructor(private readonly tokenService: TokenService) {}
+  constructor(
+    private readonly wallet: WalletService,
+    private readonly tokenService: TokenService,
+  ) {}
 
   /**
-   * Obtiene todos los tokens disponibles
-   * @returns Lista de tokens soportados con su información
+   * Gets all available tokens
+   * @returns List of supported tokens with their information
    */
-  @Get('tokens')
+  @Get('/tokens')
   public getAllTokens() {
     const tokens = this.tokenService.getAllTokens();
     return tokens.map((token) => ({
@@ -22,14 +34,14 @@ export class WalletController {
   }
 
   /**
-   * Verifica si un token específico es soportado
-   * @param tokenId Identificador del token
-   * @returns Información del token si es soportado
+   * Checks if a specific token is supported
+   * @param tokenId Identifier of the token
+   * @returns Information of the token if it is supported
    */
-  @Get('tokens/:tokenId')
+  @Get('/tokens/:tokenId')
   public getToken(@Param('tokenId') tokenId: string) {
     if (!this.tokenService.isTokenSupported(tokenId)) {
-      throw new NotFoundException(`Token ${tokenId} no soportado`);
+      throw new NotFoundException(`Token ${tokenId} is not supported`);
     }
 
     const tokenInfo = this.tokenService.getTokenInfo(tokenId);
@@ -39,5 +51,20 @@ export class WalletController {
       symbol: tokenInfo.symbol,
       network: tokenInfo.network,
     };
+  }
+
+  @Post('/wallet/transfer')
+  public async transferToUser(@Body() data: TransferToUserDto) {
+    try {
+      return await this.wallet.transferToUser({
+        from: data.from,
+        to: data.to,
+        token: data.token,
+        amount: data.amount,
+      });
+    } catch (error) {
+      // The exception filter will handle the error
+      throw error;
+    }
   }
 }
