@@ -20,7 +20,6 @@ export class WalletService {
   ) {}
 
   private getAccount(userId: string): Account {
-    console.log(uuidToUint8Array(userId));
     return {
       owner: canisterSelf(),
       subaccount: [uuidToUint8Array(userId)],

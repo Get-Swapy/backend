@@ -45,6 +45,7 @@ export class WalletController {
     }
 
     const tokenInfo = this.tokenService.getTokenInfo(tokenId);
+
     return {
       id: tokenInfo.id,
       name: tokenInfo.name,
@@ -53,7 +54,7 @@ export class WalletController {
     };
   }
 
-  @Post('/wallet/transfer')
+  @Post('/transfer')
   public async transferToUser(@Body() data: TransferToUserDto) {
     try {
       return await this.wallet.transferToUser({
