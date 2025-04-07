@@ -1,5 +1,6 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 
+import { P2pOrderService } from '../p2p-order/p2p-order.service';
 import { WalletService } from '../wallet/wallet.service';
 import { CreateUserDto } from './dtos/create-user.dto';
 import { UserService } from './user.service';
@@ -9,6 +10,7 @@ export class UserController {
   constructor(
     private readonly user: UserService,
     private readonly wallet: WalletService,
+    private readonly p2pOrderService: P2pOrderService,
   ) {}
 
   @Post('/')
@@ -26,13 +28,28 @@ export class UserController {
     return this.user.getByExternalId(externalId);
   }
 
-  // TODO: This should be a GET request
+  @Get('/:userId/orders')
+  public getUserOrders(
+    @Param('userId') userId: string,
+    @Query('role') role?: 'seller' | 'buyer' | 'all',
+  ) {
+    if (role === 'seller') {
+      return this.p2pOrderService.getBySellerId(userId);
+    } else if (role === 'buyer') {
+      return this.p2pOrderService.getByBuyerId(userId);
+    } else {
+      const sellerOrders = this.p2pOrderService.getBySellerId(userId);
+      const buyerOrders = this.p2pOrderService.getByBuyerId(userId);
+
+      return [...sellerOrders, ...buyerOrders];
+    }
+  }
+
   @Post('/:userId/wallet/balances')
   public async getBalance(@Param('userId') userId: string) {
     try {
       return await this.wallet.getBalances(userId);
     } catch (error) {
-      // The exception filter will handle the error
       throw error;
     }
   }
