@@ -33,17 +33,6 @@ export function stringToOrderStatus(status: string) {
   }
 }
 
-export function orderStatusToString(
-  status: typeof OrderStatusVariant.tsType,
-): string {
-  if ('PENDING_CONFIRMATION' in status) return 'PENDING_CONFIRMATION';
-  if ('PENDING_PAYMENT' in status) return 'PENDING_PAYMENT';
-  if ('PAYMENT_MARKED' in status) return 'PAYMENT_MARKED';
-  if ('COMPLETED' in status) return 'COMPLETED';
-  if ('CANCELLED' in status) return 'CANCELLED';
-  throw new Error('Invalid order status variant');
-}
-
 export const P2pOrder = Record({
   id: text,
   sellerId: text,
@@ -59,3 +48,9 @@ export const P2pOrder = Record({
 });
 
 export type P2pOrder = typeof P2pOrder.tsType;
+
+export function orderStatusToString(
+  status: typeof OrderStatusVariant.tsType,
+): string {
+  return Object.keys(status)[0];
+}

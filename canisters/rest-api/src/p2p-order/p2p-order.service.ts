@@ -3,15 +3,25 @@ import { StableBTreeMap } from 'azle';
 import { text } from 'azle/experimental';
 import { v4 as uuidv4 } from 'uuid';
 
+import { UserService } from '../user/user.service';
+import { SupportedTokens } from '../wallet/constants/tokens.constants';
+import { TokenService } from '../wallet/token.service';
+import { WalletService } from '../wallet/wallet.service';
 import {
   OrderStatus,
   OrderStatusVariant,
   P2pOrder,
   orderStatusToString,
 } from './entities/p2p-order.entity';
-import { UserService } from '../user/user.service';
-import { TokenService } from '../wallet/token.service';
-import { WalletService } from '../wallet/wallet.service';
+import {
+  InsufficientBalanceException,
+  InvalidOrderStatusException,
+  InvalidOrderStatusTransitionException,
+  P2POrderNotFoundException,
+  P2POrderValidationException,
+  UnsupportedTokenException,
+} from './exceptions/p2p-order.exceptions';
+import { UserNotFoundException } from '../user/exceptions/user.exception';
 
 const p2pOrders = new StableBTreeMap<text, P2pOrder>(1);
 
@@ -35,7 +45,7 @@ const validStatusTransitions = new Map<
 type CreateOrderData = {
   sellerId: string;
   buyerId: string;
-  tokenId: string;
+  tokenId: SupportedTokens;
   amount: number;
   fiatAmount: number;
   fiatCurrency: string;
@@ -67,15 +77,56 @@ export class P2pOrderService {
   ): void {
     const allowedTransitions = validStatusTransitions.get(currentStatus);
     if (!allowedTransitions) {
-      throw new Error(
-        `Invalid current status: ${orderStatusToString(currentStatus)}`,
+      throw new InvalidOrderStatusException(
+        'system',
+        orderStatusToString(currentStatus),
+        Object.values(OrderStatus).map((status) => orderStatusToString(status)),
       );
     }
-    if (!allowedTransitions.includes(newStatus)) {
-      throw new Error(
-        `Invalid status transition from ${orderStatusToString(currentStatus)} to ${orderStatusToString(newStatus)}`,
+    if (
+      !allowedTransitions.some(
+        (status) => Object.keys(status)[0] === Object.keys(newStatus)[0],
+      )
+    ) {
+      throw new InvalidOrderStatusTransitionException(
+        'system',
+        orderStatusToString(currentStatus),
+        orderStatusToString(newStatus),
+        allowedTransitions.map((t) => orderStatusToString(t)),
       );
     }
+  }
+
+  private getBlockedBalance(userId: string, tokenId: SupportedTokens): bigint {
+    return p2pOrders
+      .values()
+      .filter((order) => {
+        const isFinalized =
+          'COMPLETED' in order.status || 'CANCELLED' in order.status;
+        return (
+          order.sellerId === userId && order.tokenId === tokenId && !isFinalized
+        );
+      })
+      .reduce((acc, order) => acc + order.amount, BigInt(0));
+  }
+
+  private updateOrderStatus(
+    orderId: string,
+    newStatus: typeof OrderStatusVariant.tsType,
+  ): P2pOrder {
+    const order = this.getById(orderId);
+
+    this.validateStatusTransition(order.status, newStatus);
+
+    const updatedOrder: P2pOrder = {
+      ...order,
+      status: newStatus,
+      updatedAt: BigInt(Date.now()),
+    };
+
+    p2pOrders.insert(orderId, updatedOrder);
+
+    return updatedOrder;
   }
 
   public getAll(): P2pOrder[] {
@@ -84,7 +135,11 @@ export class P2pOrderService {
 
   public getById(orderId: string): P2pOrder {
     const maybeOrder = p2pOrders.get(orderId);
-    if (!maybeOrder) throw new Error('Order not found');
+
+    if (!maybeOrder) {
+      throw new P2POrderNotFoundException(orderId);
+    }
+
     return maybeOrder;
   }
 
@@ -96,15 +151,42 @@ export class P2pOrderService {
     return p2pOrders.values().filter((order) => order.buyerId === buyerId);
   }
 
-  public create(data: CreateOrderData): P2pOrder {
+  public async create(data: CreateOrderData) {
     const seller = this.userService.getById(data.sellerId);
-    if (!seller) throw new Error('Seller not found');
+
+    if (!seller) {
+      throw new UserNotFoundException(
+        `Seller with ID ${data.sellerId} not found`,
+      );
+    }
 
     const buyer = this.userService.getById(data.buyerId);
-    if (!buyer) throw new Error('Buyer not found');
+
+    if (!buyer) {
+      throw new UserNotFoundException(
+        `Buyer with ID ${data.buyerId} not found`,
+      );
+    }
 
     if (!this.tokenService.isTokenSupported(data.tokenId)) {
-      throw new Error(`Token ${data.tokenId} is not supported`);
+      throw new UnsupportedTokenException(data.tokenId, [data.tokenId]);
+    }
+
+    const sellerBalances = await this.walletService.getBalances(data.sellerId);
+    const sellerBalance =
+      sellerBalances.find((balance) => balance.tokenId === data.tokenId)
+        ?.balance || 0;
+
+    const blockedBalance = this.getBlockedBalance(data.sellerId, data.tokenId);
+    const availableBalance = BigInt(sellerBalance) - blockedBalance;
+    const requiredAmount = BigInt(data.amount);
+
+    if (availableBalance < requiredAmount) {
+      throw new InsufficientBalanceException(
+        data.tokenId,
+        availableBalance,
+        requiredAmount,
+      );
     }
 
     const orderId = uuidv4();
@@ -125,46 +207,26 @@ export class P2pOrderService {
     };
 
     p2pOrders.insert(orderId, newOrder);
-    return newOrder;
-  }
 
-  public confirmOrder(data: ConfirmOrderData): P2pOrder {
-    const order = this.getById(data.orderId);
-
-    this.validateStatusTransition(order.status, OrderStatus.PENDING_PAYMENT);
-
-    const updatedOrder: P2pOrder = {
-      ...order,
-      status: OrderStatus.PENDING_PAYMENT,
-      updatedAt: BigInt(Date.now()),
+    return {
+      ...newOrder,
+      status: orderStatusToString(newOrder.status),
     };
-
-    p2pOrders.insert(order.id, updatedOrder);
-    return updatedOrder;
   }
 
-  public markAsPaid(data: MarkAsPaidData): P2pOrder {
-    const order = this.getById(data.orderId);
-
-    this.validateStatusTransition(order.status, OrderStatus.PAYMENT_MARKED);
-
-    const updatedOrder: P2pOrder = {
-      ...order,
-      status: OrderStatus.PAYMENT_MARKED,
-      updatedAt: BigInt(Date.now()),
-    };
-
-    p2pOrders.insert(order.id, updatedOrder);
-    return updatedOrder;
+  public confirmOrder(data: ConfirmOrderData) {
+    return this.updateOrderStatus(data.orderId, OrderStatus.PENDING_PAYMENT);
   }
 
-  public confirmPayment(data: ConfirmPaymentData): P2pOrder {
-    const order = this.getById(data.orderId);
+  public markAsPaid(data: MarkAsPaidData) {
+    return this.updateOrderStatus(data.orderId, OrderStatus.PAYMENT_MARKED);
+  }
 
-    this.validateStatusTransition(order.status, OrderStatus.COMPLETED);
+  public confirmPayment(data: ConfirmPaymentData) {
+    const order = this.getById(data.orderId);
 
     if (!this.tokenService.isTokenSupported(order.tokenId)) {
-      throw new Error(`Token ${order.tokenId} is not supported`);
+      throw new UnsupportedTokenException(order.tokenId, [order.tokenId]);
     }
 
     this.walletService.transferToUser({
@@ -174,23 +236,19 @@ export class P2pOrderService {
       amount: Number(order.amount),
     });
 
-    const updatedOrder: P2pOrder = {
-      ...order,
-      status: OrderStatus.COMPLETED,
-      updatedAt: BigInt(Date.now()),
-    };
-
-    p2pOrders.insert(order.id, updatedOrder);
-    return updatedOrder;
+    return this.updateOrderStatus(data.orderId, OrderStatus.COMPLETED);
   }
 
-  public cancelOrder(orderId: string, reason: string): P2pOrder {
+  public cancelOrder(orderId: string, reason: string) {
     if (!reason) {
-      throw new Error('A cancellation reason is required');
+      throw new P2POrderValidationException(
+        'reason',
+        '',
+        'Cancellation reason is required',
+      );
     }
 
     const order = this.getById(orderId);
-
     this.validateStatusTransition(order.status, OrderStatus.CANCELLED);
 
     const updatedOrder: P2pOrder = {
@@ -200,7 +258,11 @@ export class P2pOrderService {
       updatedAt: BigInt(Date.now()),
     };
 
-    p2pOrders.insert(order.id, updatedOrder);
-    return updatedOrder;
+    p2pOrders.insert(orderId, updatedOrder);
+
+    return {
+      ...updatedOrder,
+      status: orderStatusToString(updatedOrder.status),
+    };
   }
 }

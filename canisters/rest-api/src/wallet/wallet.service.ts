@@ -41,7 +41,8 @@ export class WalletService {
         const balance = await tokenInfo.instance.balance(account);
         const decimals = await tokenInfo.instance.decimals();
 
-        const balanceInfo: any = {
+        const balanceInfo = {
+          tokenId: tokenInfo.id,
           token: tokenInfo.symbol,
           network: tokenInfo.network,
           balance: Number(balance),

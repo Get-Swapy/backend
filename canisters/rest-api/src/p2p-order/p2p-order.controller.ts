@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
 
+import { transformBigIntToNumber } from '../shared/helpers.shared';
 import { CreateP2pOrderDto } from './dtos/create-p2p-order.dto';
 import { UpdateOrderStatusDto } from './dtos/update-order-status.dto';
 import { P2pOrderService } from './p2p-order.service';
@@ -10,14 +11,14 @@ export class P2pOrderController {
 
   @Get('/:orderId')
   public getById(@Param('orderId') orderId: string) {
-    return this.p2pOrderService.getById(orderId);
+    const order = this.p2pOrderService.getById(orderId);
+    return transformBigIntToNumber(order);
   }
 
   @Post('/')
-  public create(@Body() data: CreateP2pOrderDto) {
-    return this.p2pOrderService.create({
-      ...data,
-    });
+  public async create(@Body() data: CreateP2pOrderDto) {
+    const order = await this.p2pOrderService.create(data);
+    return transformBigIntToNumber(order);
   }
 
   @Put('/:orderId/status')
@@ -27,16 +28,24 @@ export class P2pOrderController {
   ) {
     switch (data.status) {
       case 'PENDING_PAYMENT':
-        return this.p2pOrderService.confirmOrder({ orderId });
+        return transformBigIntToNumber(
+          this.p2pOrderService.confirmOrder({ orderId }),
+        );
 
       case 'PAYMENT_MARKED':
-        return this.p2pOrderService.markAsPaid({ orderId });
+        return transformBigIntToNumber(
+          this.p2pOrderService.markAsPaid({ orderId }),
+        );
 
       case 'COMPLETED':
-        return this.p2pOrderService.confirmPayment({ orderId });
+        return transformBigIntToNumber(
+          this.p2pOrderService.confirmPayment({ orderId }),
+        );
 
       case 'CANCELLED':
-        return this.p2pOrderService.cancelOrder(orderId, data.reason);
+        return transformBigIntToNumber(
+          this.p2pOrderService.cancelOrder(orderId, data.reason),
+        );
 
       default:
         throw new Error(`Cannot update order to status: ${data.status}`);
