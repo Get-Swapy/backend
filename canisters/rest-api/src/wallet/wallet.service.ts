@@ -76,7 +76,6 @@ export class WalletService {
       throw new RecipientNotFoundError(to);
     }
 
-    // Validar que el token es soportado
     if (!this.tokenService.isTokenSupported(token)) {
       throw new UnsupportedTokenError(token);
     }
@@ -84,7 +83,6 @@ export class WalletService {
     const fromAccount = this.getAccount(from);
     const toAccount = this.getAccount(to);
 
-    // Usar el servicio de tokens para realizar la transferencia
     return this.tokenService.transferToken(
       token,
       fromAccount,

@@ -58,12 +58,11 @@ export class InvalidOrderStatusException extends P2POrderException {
 
 export class InvalidOrderStatusTransitionException extends P2POrderException {
   constructor(
-    orderId: string,
     currentStatus: string,
     attemptedStatus: string,
     allowedTransitions: string[],
   ) {
-    const message = `Invalid status transition for order ${orderId} from '${currentStatus}' to '${attemptedStatus}'. Allowed transitions: ${allowedTransitions.join(', ')}`;
+    const message = `Invalid status transition from '${currentStatus}' to '${attemptedStatus}'. Allowed transitions: ${allowedTransitions.join(', ')}`;
     super(message, HttpStatus.BAD_REQUEST);
   }
 }

@@ -25,6 +25,7 @@ export class WalletController {
   @Get('/tokens')
   public getAllTokens() {
     const tokens = this.tokenService.getAllTokens();
+
     return tokens.map((token) => ({
       id: token.id,
       name: token.name,
@@ -56,16 +57,11 @@ export class WalletController {
 
   @Post('/transfer')
   public async transferToUser(@Body() data: TransferToUserDto) {
-    try {
-      return await this.wallet.transferToUser({
-        from: data.from,
-        to: data.to,
-        token: data.token,
-        amount: data.amount,
-      });
-    } catch (error) {
-      // The exception filter will handle the error
-      throw error;
-    }
+    return await this.wallet.transferToUser({
+      from: data.from,
+      to: data.to,
+      token: data.token,
+      amount: data.amount,
+    });
   }
 }

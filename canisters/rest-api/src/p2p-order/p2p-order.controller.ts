@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
 
-import { transformBigIntToNumber } from '../shared/helpers.shared';
+import { CancelOrderDto } from './dtos/cancel-order.dto';
 import { CreateP2pOrderDto } from './dtos/create-p2p-order.dto';
-import { UpdateOrderStatusDto } from './dtos/update-order-status.dto';
 import { P2pOrderService } from './p2p-order.service';
+import { transformBigIntToNumber } from '../shared/helpers.shared';
 
 @Controller('/p2p-orders')
 export class P2pOrderController {
@@ -18,37 +18,30 @@ export class P2pOrderController {
   @Post('/')
   public async create(@Body() data: CreateP2pOrderDto) {
     const order = await this.p2pOrderService.create(data);
+
     return transformBigIntToNumber(order);
   }
 
-  @Put('/:orderId/status')
-  public updateOrderStatus(
+  @Put('/:orderId/status/accept')
+  public acceptOrder(@Param('orderId') orderId: string) {
+    this.p2pOrderService.acceptOrder(orderId);
+  }
+
+  @Put('/:orderId/status/mark-as-paid')
+  public markAsPaid(@Param('orderId') orderId: string) {
+    this.p2pOrderService.markAsPaid(orderId);
+  }
+
+  @Put('/:orderId/status/confirm-payment')
+  public confirmPayment(@Param('orderId') orderId: string) {
+    this.p2pOrderService.confirmPayment(orderId);
+  }
+
+  @Put('/:orderId/status/cancel')
+  public cancelOrder(
     @Param('orderId') orderId: string,
-    @Body() data: UpdateOrderStatusDto,
+    @Body() data: CancelOrderDto,
   ) {
-    switch (data.status) {
-      case 'PENDING_PAYMENT':
-        return transformBigIntToNumber(
-          this.p2pOrderService.confirmOrder({ orderId }),
-        );
-
-      case 'PAYMENT_MARKED':
-        return transformBigIntToNumber(
-          this.p2pOrderService.markAsPaid({ orderId }),
-        );
-
-      case 'COMPLETED':
-        return transformBigIntToNumber(
-          this.p2pOrderService.confirmPayment({ orderId }),
-        );
-
-      case 'CANCELLED':
-        return transformBigIntToNumber(
-          this.p2pOrderService.cancelOrder(orderId, data.reason),
-        );
-
-      default:
-        throw new Error(`Cannot update order to status: ${data.status}`);
-    }
+    this.p2pOrderService.cancelOrder(orderId, data.reason);
   }
 }

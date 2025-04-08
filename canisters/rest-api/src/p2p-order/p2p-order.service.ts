@@ -8,14 +8,12 @@ import { SupportedTokens } from '../wallet/constants/tokens.constants';
 import { TokenService } from '../wallet/token.service';
 import { WalletService } from '../wallet/wallet.service';
 import {
-  OrderStatus,
   OrderStatusVariant,
   P2pOrder,
   orderStatusToString,
 } from './entities/p2p-order.entity';
 import {
   InsufficientBalanceException,
-  InvalidOrderStatusException,
   InvalidOrderStatusTransitionException,
   P2POrderNotFoundException,
   P2POrderValidationException,
@@ -25,21 +23,12 @@ import { UserNotFoundException } from '../user/exceptions/user.exception';
 
 const p2pOrders = new StableBTreeMap<text, P2pOrder>(1);
 
-const validStatusTransitions = new Map<
-  typeof OrderStatusVariant.tsType,
-  (typeof OrderStatusVariant.tsType)[]
->([
-  [
-    OrderStatus.PENDING_CONFIRMATION,
-    [OrderStatus.PENDING_PAYMENT, OrderStatus.CANCELLED],
-  ],
-  [
-    OrderStatus.PENDING_PAYMENT,
-    [OrderStatus.PAYMENT_MARKED, OrderStatus.CANCELLED],
-  ],
-  [OrderStatus.PAYMENT_MARKED, [OrderStatus.COMPLETED, OrderStatus.CANCELLED]],
-  [OrderStatus.CANCELLED, []],
-  [OrderStatus.COMPLETED, []],
+const validStatusTransitions = new Map([
+  ['WAITING_FOR_BUYER_CONFIRMATION', ['WAITING_FOR_PAYMENT', 'CANCELLED']],
+  ['WAITING_FOR_PAYMENT', ['WAITING_FOR_PAYMENT_CONFIRMATION', 'CANCELLED']],
+  ['WAITING_FOR_PAYMENT_CONFIRMATION', ['COMPLETED', 'CANCELLED']],
+  ['CANCELLED', []],
+  ['COMPLETED', []],
 ]);
 
 type CreateOrderData = {
@@ -51,18 +40,6 @@ type CreateOrderData = {
   fiatCurrency: string;
 };
 
-type ConfirmOrderData = {
-  orderId: string;
-};
-
-type MarkAsPaidData = {
-  orderId: string;
-};
-
-type ConfirmPaymentData = {
-  orderId: string;
-};
-
 @Injectable()
 export class P2pOrderService {
   constructor(
@@ -72,28 +49,48 @@ export class P2pOrderService {
   ) {}
 
   private validateStatusTransition(
-    currentStatus: typeof OrderStatusVariant.tsType,
-    newStatus: typeof OrderStatusVariant.tsType,
+    currentStatus: OrderStatusVariant,
+    newStatus: OrderStatusVariant,
   ): void {
-    const allowedTransitions = validStatusTransitions.get(currentStatus);
+    const currentStatusStr = orderStatusToString(currentStatus);
+    const newStatusStr = orderStatusToString(newStatus);
+    const allowedTransitions = validStatusTransitions.get(currentStatusStr);
+
     if (!allowedTransitions) {
-      throw new InvalidOrderStatusException(
-        'system',
-        orderStatusToString(currentStatus),
-        Object.values(OrderStatus).map((status) => orderStatusToString(status)),
+      throw new InvalidOrderStatusTransitionException(
+        currentStatusStr,
+        newStatusStr,
+        Array.from(validStatusTransitions.keys()),
       );
     }
-    if (
-      !allowedTransitions.some(
-        (status) => Object.keys(status)[0] === Object.keys(newStatus)[0],
-      )
-    ) {
+
+    if (!allowedTransitions.includes(newStatusStr)) {
       throw new InvalidOrderStatusTransitionException(
-        'system',
-        orderStatusToString(currentStatus),
-        orderStatusToString(newStatus),
-        allowedTransitions.map((t) => orderStatusToString(t)),
+        currentStatusStr,
+        newStatusStr,
+        allowedTransitions,
       );
+    }
+  }
+
+  private stringToOrderStatus(status: string): OrderStatusVariant {
+    switch (status) {
+      case 'WAITING_FOR_BUYER_CONFIRMATION':
+        return { WAITING_FOR_BUYER_CONFIRMATION: null };
+      case 'WAITING_FOR_PAYMENT':
+        return { WAITING_FOR_PAYMENT: null };
+      case 'WAITING_FOR_PAYMENT_CONFIRMATION':
+        return { WAITING_FOR_PAYMENT_CONFIRMATION: null };
+      case 'COMPLETED':
+        return { COMPLETED: null };
+      case 'CANCELLED':
+        return { CANCELLED: null };
+      default:
+        throw new P2POrderValidationException(
+          'status',
+          status,
+          'Invalid order status',
+        );
     }
   }
 
@@ -112,7 +109,7 @@ export class P2pOrderService {
 
   private updateOrderStatus(
     orderId: string,
-    newStatus: typeof OrderStatusVariant.tsType,
+    newStatus: OrderStatusVariant,
   ): P2pOrder {
     const order = this.getById(orderId);
 
@@ -124,7 +121,7 @@ export class P2pOrderService {
       updatedAt: BigInt(Date.now()),
     };
 
-    p2pOrders.insert(orderId, updatedOrder);
+    p2pOrders.insert(updatedOrder.id, updatedOrder);
 
     return updatedOrder;
   }
@@ -133,7 +130,7 @@ export class P2pOrderService {
     return p2pOrders.values();
   }
 
-  public getById(orderId: string): P2pOrder {
+  public getById(orderId: string) {
     const maybeOrder = p2pOrders.get(orderId);
 
     if (!maybeOrder) {
@@ -154,6 +151,8 @@ export class P2pOrderService {
   public async create(data: CreateOrderData) {
     const seller = this.userService.getById(data.sellerId);
 
+    // TODO: Validate if seller and buyer are different users
+
     if (!seller) {
       throw new UserNotFoundException(
         `Seller with ID ${data.sellerId} not found`,
@@ -173,12 +172,15 @@ export class P2pOrderService {
     }
 
     const sellerBalances = await this.walletService.getBalances(data.sellerId);
+
     const sellerBalance =
       sellerBalances.find((balance) => balance.tokenId === data.tokenId)
         ?.balance || 0;
 
     const blockedBalance = this.getBlockedBalance(data.sellerId, data.tokenId);
+
     const availableBalance = BigInt(sellerBalance) - blockedBalance;
+
     const requiredAmount = BigInt(data.amount);
 
     if (availableBalance < requiredAmount) {
@@ -200,7 +202,7 @@ export class P2pOrderService {
       amount: BigInt(data.amount),
       fiatAmount: BigInt(data.fiatAmount),
       fiatCurrency: data.fiatCurrency,
-      status: OrderStatus.PENDING_CONFIRMATION,
+      status: { WAITING_FOR_BUYER_CONFIRMATION: null },
       cancellationReason: '',
       createdAt: now,
       updatedAt: now,
@@ -208,61 +210,54 @@ export class P2pOrderService {
 
     p2pOrders.insert(orderId, newOrder);
 
-    return {
+    const response = {
       ...newOrder,
+      amount: Number(newOrder.amount),
+      fiatAmount: Number(newOrder.fiatAmount),
+      createdAt: Number(newOrder.createdAt),
+      updatedAt: Number(newOrder.updatedAt),
       status: orderStatusToString(newOrder.status),
     };
+
+    return response;
   }
 
-  public confirmOrder(data: ConfirmOrderData) {
-    return this.updateOrderStatus(data.orderId, OrderStatus.PENDING_PAYMENT);
+  public acceptOrder(orderId: string): P2pOrder {
+    return this.updateOrderStatus(orderId, { WAITING_FOR_PAYMENT: null });
   }
 
-  public markAsPaid(data: MarkAsPaidData) {
-    return this.updateOrderStatus(data.orderId, OrderStatus.PAYMENT_MARKED);
+  public markAsPaid(orderId: string) {
+    this.updateOrderStatus(orderId, { WAITING_FOR_PAYMENT_CONFIRMATION: null });
   }
 
-  public confirmPayment(data: ConfirmPaymentData) {
-    const order = this.getById(data.orderId);
+  public async confirmPayment(orderId: string) {
+    const order = this.getById(orderId);
 
-    if (!this.tokenService.isTokenSupported(order.tokenId)) {
-      throw new UnsupportedTokenException(order.tokenId, [order.tokenId]);
-    }
-
-    this.walletService.transferToUser({
+    const transferResult = await this.walletService.transferToUser({
       from: order.sellerId,
       to: order.buyerId,
       token: order.tokenId,
       amount: Number(order.amount),
     });
 
-    return this.updateOrderStatus(data.orderId, OrderStatus.COMPLETED);
+    const updatedOrder = this.updateOrderStatus(orderId, { COMPLETED: null });
+    return { ...transferResult, order: updatedOrder };
   }
 
-  public cancelOrder(orderId: string, reason: string) {
-    if (!reason) {
-      throw new P2POrderValidationException(
-        'reason',
-        '',
-        'Cancellation reason is required',
-      );
-    }
-
+  public cancelOrder(orderId: string, reason: string): P2pOrder {
     const order = this.getById(orderId);
-    this.validateStatusTransition(order.status, OrderStatus.CANCELLED);
+
+    this.validateStatusTransition(order.status, { CANCELLED: null });
 
     const updatedOrder: P2pOrder = {
       ...order,
-      status: OrderStatus.CANCELLED,
+      status: { CANCELLED: null },
       cancellationReason: reason,
       updatedAt: BigInt(Date.now()),
     };
 
-    p2pOrders.insert(orderId, updatedOrder);
+    p2pOrders.insert(updatedOrder.id, updatedOrder);
 
-    return {
-      ...updatedOrder,
-      status: orderStatusToString(updatedOrder.status),
-    };
+    return updatedOrder;
   }
 }

@@ -96,7 +96,7 @@ export class TokenService {
     from: Account,
     to: Account,
     amount: number,
-  ): Promise<any> {
+  ) {
     const token = this.getToken(tokenId);
     return token.transfer(from, to, amount);
   }

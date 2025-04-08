@@ -1,4 +1,4 @@
-import { OrderStatus, OrderStatusVariant } from '../entities/p2p-order.entity';
+import { OrderStatusVariant } from '../entities/p2p-order.entity';
 
 export const SUPPORTED_FIAT_CURRENCIES = ['USD', 'EUR', 'GBP'] as const;
 export type SupportedFiatCurrency = (typeof SUPPORTED_FIAT_CURRENCIES)[number];
@@ -8,14 +8,20 @@ export const validStatusTransitions = new Map<
   (typeof OrderStatusVariant.tsType)[]
 >([
   [
-    OrderStatus.PENDING_CONFIRMATION,
-    [OrderStatus.PENDING_PAYMENT, OrderStatus.CANCELLED],
+    OrderStatusVariant.WAITING_FOR_BUYER_CONFIRMATION,
+    [OrderStatusVariant.WAITING_FOR_PAYMENT, OrderStatusVariant.CANCELLED],
   ],
   [
-    OrderStatus.PENDING_PAYMENT,
-    [OrderStatus.PAYMENT_MARKED, OrderStatus.CANCELLED],
+    OrderStatusVariant.WAITING_FOR_PAYMENT,
+    [
+      OrderStatusVariant.WAITING_FOR_PAYMENT_CONFIRMATION,
+      OrderStatusVariant.CANCELLED,
+    ],
   ],
-  [OrderStatus.PAYMENT_MARKED, [OrderStatus.COMPLETED, OrderStatus.CANCELLED]],
-  [OrderStatus.CANCELLED, []],
-  [OrderStatus.COMPLETED, []],
+  [
+    OrderStatusVariant.WAITING_FOR_PAYMENT_CONFIRMATION,
+    [OrderStatusVariant.COMPLETED, OrderStatusVariant.CANCELLED],
+  ],
+  [OrderStatusVariant.CANCELLED, []],
+  [OrderStatusVariant.COMPLETED, []],
 ]);

@@ -1,5 +1,10 @@
 import { Account } from 'azle/canisters/icrc_1/idl';
 
+export type TransferResult = {
+  transactionId: string;
+  explorerUrl: string;
+};
+
 export interface Token {
   /**
    * Obtiene la dirección de la cuenta para el token
@@ -24,7 +29,7 @@ export interface Token {
    * @param to Cuenta destino
    * @param amount Cantidad a transferir
    */
-  transfer(from: Account, to: Account, amount: number): Promise<any>;
+  transfer(from: Account, to: Account, amount: number): Promise<TransferResult>;
 }
 
 export interface TokenInfo {

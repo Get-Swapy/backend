@@ -1,33 +1,27 @@
 import { Record, Variant, nat64, text } from 'azle/experimental';
 
 export const OrderStatusVariant = Variant({
-  PENDING_CONFIRMATION: null,
-  PENDING_PAYMENT: null,
-  PAYMENT_MARKED: null,
+  WAITING_FOR_BUYER_CONFIRMATION: null,
+  WAITING_FOR_PAYMENT: null,
+  WAITING_FOR_PAYMENT_CONFIRMATION: null,
   COMPLETED: null,
   CANCELLED: null,
 });
 
-export const OrderStatus = {
-  PENDING_CONFIRMATION: { PENDING_CONFIRMATION: null },
-  PENDING_PAYMENT: { PENDING_PAYMENT: null },
-  PAYMENT_MARKED: { PAYMENT_MARKED: null },
-  COMPLETED: { COMPLETED: null },
-  CANCELLED: { CANCELLED: null },
-};
+export type OrderStatusVariant = typeof OrderStatusVariant.tsType;
 
 export function stringToOrderStatus(status: string) {
   switch (status) {
-    case 'PENDING_CONFIRMATION':
-      return OrderStatus.PENDING_CONFIRMATION;
-    case 'PENDING_PAYMENT':
-      return OrderStatus.PENDING_PAYMENT;
-    case 'PAYMENT_MARKED':
-      return OrderStatus.PAYMENT_MARKED;
+    case 'WAITING_FOR_BUYER_CONFIRMATION':
+      return OrderStatusVariant.WAITING_FOR_BUYER_CONFIRMATION;
+    case 'WAITING_FOR_PAYMENT':
+      return OrderStatusVariant.WAITING_FOR_PAYMENT;
+    case 'WAITING_FOR_PAYMENT_CONFIRMATION':
+      return OrderStatusVariant.WAITING_FOR_PAYMENT_CONFIRMATION;
     case 'COMPLETED':
-      return OrderStatus.COMPLETED;
+      return OrderStatusVariant.COMPLETED;
     case 'CANCELLED':
-      return OrderStatus.CANCELLED;
+      return OrderStatusVariant.CANCELLED;
     default:
       throw new Error(`Invalid order status: ${status}`);
   }
@@ -49,8 +43,15 @@ export const P2pOrder = Record({
 
 export type P2pOrder = typeof P2pOrder.tsType;
 
-export function orderStatusToString(
-  status: typeof OrderStatusVariant.tsType,
-): string {
-  return Object.keys(status)[0];
+export function orderStatusToString(status: OrderStatusVariant): string {
+  if (!status || typeof status !== 'object') {
+    throw new Error('Invalid status object');
+  }
+
+  const keys = Object.keys(status);
+  if (keys.length !== 1) {
+    throw new Error('Invalid status variant format');
+  }
+
+  return keys[0];
 }
